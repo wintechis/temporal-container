@@ -1,0 +1,1 @@
+curl -X PATCH -H "Content-Type: text/n3" -d @patch-temporal-container.ttl "http://localhost:3000/.meta"

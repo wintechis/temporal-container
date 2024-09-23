@@ -69,7 +69,7 @@
     "test:unit": "jest --config=./jest.coverage.config.js test/unit",
     "test:watch": "jest --coverageReporters none --watch test/unit",
     "validate": "componentsjs-compile-config urn:solid-server:default:Initializer -c config/default.json -f > /dev/null",
-    "watch": "nodemon --watch \"dist/**/*.js\" --exec npm start"
+    "watch": "nodemon --watch \"dist/**/*.js\" --exec npm run start:file-root"
   },
   "dependencies": {
     "@comunica/context-entries": "^2.8.2",

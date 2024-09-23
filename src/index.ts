@@ -542,6 +542,7 @@ export * from './storage/RepresentationConvertingStore';
 export * from './storage/ResourceSet';
 export * from './storage/ResourceStore';
 export * from './storage/RoutingResourceStore';
+export * from './storage/TemporalStore';
 
 // Util/Errors
 export * from './util/errors/BadRequestHttpError';
