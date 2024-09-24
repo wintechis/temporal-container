@@ -9,7 +9,7 @@
         "@id": "urn:solid-server:default:TargetExtractor",
         "@type": "OriginalUrlExtractor",
         "identifierStrategy": { "@id": "urn:solid-server:default:IdentifierStrategy" },
-        "includeQueryString": false
+        "includeQueryString": true
       },
       "preferenceParser": { "@id": "urn:solid-server:default:PreferenceParser" },
       "metadataParser": { "@id": "urn:solid-server:default:MetadataParser" },
