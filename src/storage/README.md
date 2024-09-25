@@ -89,13 +89,26 @@ Retrieves temperature data recorded by the specified sensor between two absolute
 
 ### Example 4: Combination of multiple requests to evaluate acceleration changes
 
+I want to find out: Does my acceleration decrease?
+
+Or, more technical: Was `acceleration_x` at any time in the last five minutes higher than it currently (20.04.24 01:28) is?
+
+Or, in Temporal Logic:
+
 ![alt text](../../img/formula1.png "Formula 1")
 
-
-
+The TL formula can be translated into the following requests (we use absolute intervals instead of relative ones here for demonstration purposes):
 ```
-
-``
+http://localhost:3000/?intervalAbsoluteStart=2024-09-20T01:30:00&intervalAbsoluteEnd=2024-09-20T01:28:00&observedProperty=https%3A%2F%2Fsolid.iis.fraunhofer.de%2Fmsds%2Fproperties%23acceleration-x
+```
+Use the result as value for the following request:
+```
+http://localhost:3000/?intervalAbsoluteStart=2024-09-20T01:28:00&intervalAbsoluteEnd=2024-09-20T01:23:00&observedProperty=https%3A%2F%2Fsolid.iis.fraunhofer.de%2Fmsds%2Fproperties%23acceleration-x&value=gte_68&operator=diamond
+```
+This leads to `true` which means our acceleration is decreasing. If you want to see the values that are responsible for this result, you can just drop the diamond operator:
+```
+http://localhost:3000/?intervalAbsoluteStart=2024-09-20T01:28:00&intervalAbsoluteEnd=2024-09-20T01:23:00&observedProperty=https%3A%2F%2Fsolid.iis.fraunhofer.de%2Fmsds%2Fproperties%23acceleration-x
+```
 
 
 ## Configuration
