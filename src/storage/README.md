@@ -126,6 +126,9 @@ We use "css:config/storage/middleware/temporal.json" as configuration file and i
 
 To use our configuration, we replaced the normally used ""css:config/storage/middleware/default.json" with "css:config/storage/middleware/temporal.json" in "/config/file-root.json".
 
+At the time of writing, the CSS does not handle query parameters by default, so you have to activate the functionality manually. Do this in "/config/ldp/handler/components/request-parser.json" by changing the following value to true:
+```"includeQueryString": true```
+
 ### Patch container
 To recognize a TemporalStore, LDP containers have to have the RDF type `https://solid.ti.rw.fau.de/public/ns/tc#TemporalContainer`. We prepared the script `patch-temporal-container.sh` you may use to patch an existing container easily. 
 
@@ -141,7 +144,7 @@ npm run start
 After you patched your container to be a TemproalContainer, insert all measurements as RDF resources (ldp:contains). Afterwards, you may send GET requests with query parameters as shown above.
 
 ## Last words
-Our work part of the MSDS Mini working group.
+Our work is part of the MSDS Mini working group.
 
 2024-09-25
 
