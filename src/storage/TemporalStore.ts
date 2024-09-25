@@ -37,78 +37,88 @@ export class TemporalStore<T extends ResourceStore = ResourceStore> extends Pass
           DataFactory.namedNode('http://www.w3.org/1999/02/22-rdf-syntax-ns#type'),
           DataFactory.namedNode('https://solid.ti.rw.fau.de/public/ns/tc#TemporalContainer')
         )) {
-          let values = [];
-          let containedResources = rep.metadata.getAll(DataFactory.namedNode('http://www.w3.org/ns/ldp#contains'));
+          let containedResources = rep.metadata.getAll(DataFactory.namedNode('http://www.w3.org/ns/ldp#contains')).slice(0,100);
+          let promises: Promise<string[][]>[] = [];
           for(let cR of containedResources) {
-            let cRep = await this.source.getRepresentation({ path: cR.value }, preferences, conditions);
-            let parser = new StreamParser();
-            let store = new Store();
-            cRep.data.pipe(parser);
-            await once(store.import(parser), 'end');
-            let observations = store.getSubjects(
-              DataFactory.namedNode('http://www.w3.org/1999/02/22-rdf-syntax-ns#type'),
-              DataFactory.namedNode('http://www.w3.org/ns/sosa/Observation'),
-              null
-            );
-            for(let obs of observations) {
-              // filter observedProperty
-              if(searchParams.has('observedProperty') && !store.has(DataFactory.quad(
-                obs,
-                DataFactory.namedNode('http://www.w3.org/ns/sosa/observedProperty'),
-                DataFactory.namedNode(searchParams.get('observedProperty')!)
-              ))) {
-                continue;
-              }
-
-              // filter madeBySensor
-              if(searchParams.has('madeBySensor') && !store.has(DataFactory.quad(
-                obs,
-                DataFactory.namedNode('http://www.w3.org/ns/sosa/madeBySensor'),
-                DataFactory.namedNode(searchParams.get('madeBySensor')!)
-              ))) {
-                continue;
-              }
-
-              let timestamps = store.getObjects(obs, DataFactory.namedNode('http://www.w3.org/ns/sosa/resultTime'), null).map(nn => nn.value);
-              let results = store.getObjects(
-                obs,
-                DataFactory.namedNode('http://www.w3.org/ns/sosa/hasResult'),
+            promises.push(this.source.getRepresentation({ path: cR.value }, preferences, conditions).then(async (cRep) => {
+              let parser = new StreamParser();
+              let store = new Store();
+              cRep.data.pipe(parser);
+              await once(store.import(parser), 'end');
+              return store;
+            }).then((store) => {
+              let observations = store.getSubjects(
+                DataFactory.namedNode('http://www.w3.org/1999/02/22-rdf-syntax-ns#type'),
+                DataFactory.namedNode('http://www.w3.org/ns/sosa/Observation'),
                 null
-              ).flatMap(
-                (resultObject) => {
-                  return [store.getObjects(
-                    resultObject,
-                    DataFactory.namedNode('http://qudt.org/vocab/unit/numericValue'),
-                    null
-                  ).map(nn => nn.value),
-                  store.getObjects(
-                    resultObject,
-                    DataFactory.namedNode('http://qudt.org/schema/qudt/hasUnit'),
-                    null
-                  ).map(nn => nn.value)];
+              );
+
+              let vs = []
+              for(let obs of observations) {
+                // filter observedProperty
+                if(searchParams.has('observedProperty') && !store.has(DataFactory.quad(
+                  obs,
+                  DataFactory.namedNode('http://www.w3.org/ns/sosa/observedProperty'),
+                  DataFactory.namedNode(searchParams.get('observedProperty')!)
+                ))) {
+                  continue;
                 }
-              )
-              if(timestamps.length > 0 && results.length > 0 && results[0].length > 0) {
-                values.push([timestamps[0], results[0][0], results[1][0]]);
-              } 
-            }
+
+                // filter madeBySensor
+                if(searchParams.has('madeBySensor') && !store.has(DataFactory.quad(
+                  obs,
+                  DataFactory.namedNode('http://www.w3.org/ns/sosa/madeBySensor'),
+                  DataFactory.namedNode(searchParams.get('madeBySensor')!)
+                ))) {
+                  continue;
+                }
+
+                let timestamps = store.getObjects(obs, DataFactory.namedNode('http://www.w3.org/ns/sosa/resultTime'), null).map(nn => nn.value);
+                let results = store.getObjects(
+                  obs,
+                  DataFactory.namedNode('http://www.w3.org/ns/sosa/hasResult'),
+                  null
+                ).flatMap(
+                  (resultObject) => {
+                    return [store.getObjects(
+                      resultObject,
+                      DataFactory.namedNode('http://qudt.org/vocab/unit/numericValue'),
+                      null
+                    ).map(nn => nn.value),
+                    store.getObjects(
+                      resultObject,
+                      DataFactory.namedNode('http://qudt.org/schema/qudt/hasUnit'),
+                      null
+                    ).map(nn => nn.value)];
+                  }
+                );
+
+                if(timestamps.length > 0 && results.length > 0 && results[0].length > 0) {
+                  vs.push([timestamps[0], results[0][0], results[1][0]]);
+                }
+              }
+              return vs;
+            }));
           }
+          let values3d = await Promise.all(promises);
+          let values: string[][] = values3d.flat().filter(v => v.length != 0);
+
           // filter intervals
           if(searchParams.has('intervalStart')) {
             let start = new Date(now.valueOf() - toSeconds(parse(searchParams.get('intervalStart')!)) * 1000);
-            values = values.filter(([ts, va, un]) => ts <= start.toISOString());
+            values = values.filter(([ts, va, un]) => new Date(ts) <= start);
           }
           if(searchParams.has('intervalEnd')) {
             let end = new Date(now.valueOf() - toSeconds(parse(searchParams.get('intervalEnd')!)) * 1000);
-            values = values.filter(([ts, va, un]) => ts >= end.toISOString());
+            values = values.filter(([ts, va, un]) => new Date(ts) >= end);
           }
           if(searchParams.has('intervalAbsoluteStart')) {
             let start = new Date(searchParams.get('intervalAbsoluteStart')!);
-            values = values.filter(([ts, va, un]) => ts <= start.toISOString());
+            values = values.filter(([ts, va, un]) => new Date(ts) <= start);
           }
           if(searchParams.has('intervalAbsoluteEnd')) {
             let end = new Date(searchParams.get('intervalAbsoluteEnd')!);
-            values = values.filter(([ts, va, un]) => ts >= end.toISOString());
+            values = values.filter(([ts, va, un]) => new Date(ts) >= end);
           }
 
           let orginalValueCount = values.length;
